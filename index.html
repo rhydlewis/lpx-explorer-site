@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LPX Explorer — see inside your Logic Pro projects without opening Logic</title>
+<meta name="description" content="A read-only macOS app for inspecting Logic Pro .logicx project bundles. See plug-ins, tracks and metadata, and check whether a project will open cleanly — without launching Logic." />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="LPX Explorer" />
+<meta property="og:description" content="See what's inside your Logic Pro projects — and whether they'll open cleanly — without launching Logic." />
+<meta property="og:image" content="https://github.com/rhydlewis/lpx-explorer/raw/main/screenshot.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg:        #0b0d12;
+    --bg-2:      #10131a;
+    --surface:   #161a23;
+    --surface-2: #1c212c;
+    --line:      #262c38;
+    --line-soft: #1e232e;
+    --text:      #e8e5dd;
+    --text-dim:  #9aa3b2;
+    --text-faint:#697185;
+    --clean:     #45d483;
+    --warn:      #f5b342;
+    --fail:      #f06a5d;
+    --inst:      #6c8cff;  /* instrument pill */
+    --fx:        #45d483;  /* fx pill */
+    --midi:      #f5b342;  /* midi pill */
+    --accent:    #45d483;
+    --radius:    14px;
+    --maxw:      1080px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hanken Grotesk", sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Atmospheric background: faint grid + glow */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: 0.35;
+    z-index: 0;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    width: 900px;
+    height: 600px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(69,212,131,0.10), transparent 65%);
+    filter: blur(40px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  h1, h2, h3 { font-family: "Bricolage Grotesque", sans-serif; letter-spacing: -0.02em; line-height: 1.05; }
+
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  a { color: inherit; }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(12px);
+    background: rgba(11,13,18,0.72);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Bricolage Grotesque"; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
+  .brand-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--clean); box-shadow: 0 0 12px var(--clean); }
+  .nav-links { display: flex; gap: 26px; align-items: center; font-size: 15px; color: var(--text-dim); }
+  .nav-links a { text-decoration: none; transition: color .2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links .ghbtn { color: var(--text); border: 1px solid var(--line); padding: 7px 14px; border-radius: 9px; transition: border-color .2s, background .2s; }
+  .nav-links .ghbtn:hover { border-color: var(--text-faint); background: var(--surface); }
+  @media (max-width: 680px){ .nav-links a:not(.ghbtn){ display:none; } }
+
+  /* ---------- Hero ---------- */
+  header { padding: 90px 0 60px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: "JetBrains Mono"; font-size: 12.5px; letter-spacing: 0.04em;
+    color: var(--text-dim); border: 1px solid var(--line); border-radius: 100px;
+    padding: 6px 14px; margin-bottom: 28px; text-transform: uppercase;
+  }
+  .eyebrow b { color: var(--clean); font-weight: 700; }
+  h1.hero { font-size: clamp(40px, 7vw, 76px); font-weight: 800; }
+  h1.hero .em { color: var(--text-dim); display: block; }
+  .lede { font-size: clamp(18px, 2.4vw, 22px); color: var(--text-dim); max-width: 620px; margin: 26px 0 0; line-height: 1.5; }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 38px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+    font-weight: 600; font-size: 16px; padding: 14px 24px; border-radius: 11px;
+    transition: transform .15s, box-shadow .2s, background .2s, border-color .2s;
+  }
+  .btn-primary { background: var(--clean); color: #06160d; box-shadow: 0 8px 30px rgba(69,212,131,0.28); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(69,212,131,0.38); }
+  .btn-ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--text-faint); background: var(--surface); }
+  .btn small { font-family: "JetBrains Mono"; font-weight: 400; font-size: 12px; opacity: .7; }
+
+  .meta-line { margin-top: 22px; font-family: "JetBrains Mono"; font-size: 13px; color: var(--text-faint); display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-line span::after { content: "·"; margin-left: 8px; color: var(--line); }
+  .meta-line span:last-child::after { content: ""; }
+
+  /* Verdict band motif */
+  .verdict {
+    margin-top: 48px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface), var(--bg-2));
+    overflow: hidden;
+  }
+  .verdict-band { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line-soft); }
+  .verdict-band .pulse { width: 12px; height: 12px; border-radius: 50%; background: var(--clean); position: relative; }
+  .verdict-band .pulse::after { content:""; position:absolute; inset:-5px; border-radius:50%; border:1px solid var(--clean); opacity:.5; animation: ring 2.4s ease-out infinite; }
+  @keyframes ring { 0%{transform:scale(.6);opacity:.6} 100%{transform:scale(1.6);opacity:0} }
+  .verdict-band b { font-family:"JetBrains Mono"; font-size: 14px; letter-spacing: .02em; color: var(--clean); text-transform: uppercase; }
+  .verdict-band span { color: var(--text-dim); font-size: 14px; }
+  .shot { display: block; width: 100%; height: auto; }
+
+  /* ---------- Sections ---------- */
+  section { padding: 80px 0; }
+  .section-tag { font-family:"JetBrains Mono"; font-size: 12.5px; letter-spacing:.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+  h2.sec { font-size: clamp(28px, 4.5vw, 44px); font-weight: 800; max-width: 620px; }
+  .sec-lede { color: var(--text-dim); font-size: 19px; margin-top: 18px; max-width: 640px; line-height: 1.55; }
+
+  /* Problem block */
+  .problem { background: var(--bg-2); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+  .filenames { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+  .filenames .f { font-family:"JetBrains Mono"; font-size: 14px; color: var(--text-dim); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; }
+  .filenames .f::before { content: "◷ "; color: var(--text-faint); }
+
+  /* Two-column features */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 46px; }
+  @media (max-width: 760px){ .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 30px; transition: border-color .25s, transform .25s; }
+  .card:hover { border-color: var(--text-faint); transform: translateY(-3px); }
+  .card h3 { font-size: 23px; font-weight: 600; margin-bottom: 8px; }
+  .card .kicker { font-family:"JetBrains Mono"; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing:.06em; }
+  .card ul { list-style: none; margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .card li { color: var(--text-dim); font-size: 15.5px; padding-left: 22px; position: relative; line-height: 1.5; }
+  .card li::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+
+  /* Pills demo */
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+  .pill { font-family:"JetBrains Mono"; font-size: 12px; padding: 5px 11px; border-radius: 7px; border:1px solid; }
+  .pill.inst { color: var(--inst); border-color: rgba(108,140,255,.4); background: rgba(108,140,255,.1); }
+  .pill.fx   { color: var(--fx);   border-color: rgba(69,212,131,.4); background: rgba(69,212,131,.1); }
+  .pill.midi { color: var(--midi); border-color: rgba(245,179,66,.4); background: rgba(245,179,66,.1); }
+
+  /* Trust / read-only */
+  .trust { background: var(--bg-2); border-top:1px solid var(--line-soft); }
+  .trust-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line-soft); border:1px solid var(--line-soft); border-radius: var(--radius); overflow: hidden; margin-top: 44px; }
+  @media (max-width: 760px){ .trust-grid { grid-template-columns: 1fr; } }
+  .trust-item { background: var(--surface); padding: 28px; }
+  .trust-item code { font-family:"JetBrains Mono"; font-size: 13px; color: var(--clean); background: rgba(69,212,131,.08); padding: 2px 7px; border-radius: 5px; }
+  .trust-item h4 { font-family:"Bricolage Grotesque"; font-weight:600; font-size: 17px; margin-bottom: 8px; }
+  .trust-item p { color: var(--text-dim); font-size: 15px; line-height: 1.55; }
+  .warnbox { margin-top: 26px; border: 1px solid rgba(245,179,66,.35); background: rgba(245,179,66,.06); border-radius: 11px; padding: 18px 20px; display: flex; gap: 14px; }
+  .warnbox .ic { color: var(--warn); font-size: 20px; line-height: 1.3; }
+  .warnbox p { font-size: 15px; color: var(--text-dim); }
+  .warnbox b { color: var(--text); }
+
+  /* Verdict triple */
+  .verdicts { display:grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 44px; }
+  @media (max-width: 680px){ .verdicts { grid-template-columns: 1fr; } }
+  .v { border:1px solid var(--line); border-radius: var(--radius); padding: 24px; background: var(--surface); }
+  .v .dot { width: 14px; height:14px; border-radius:50%; margin-bottom: 16px; }
+  .v.clean .dot { background: var(--clean); box-shadow:0 0 14px var(--clean); }
+  .v.warn  .dot { background: var(--warn);  box-shadow:0 0 14px var(--warn); }
+  .v.fail  .dot { background: var(--fail);  box-shadow:0 0 14px var(--fail); }
+  .v .name { font-family:"JetBrains Mono"; font-size: 14px; text-transform: uppercase; letter-spacing:.04em; margin-bottom: 8px; }
+  .v.clean .name{color:var(--clean)} .v.warn .name{color:var(--warn)} .v.fail .name{color:var(--fail)}
+  .v p { color: var(--text-dim); font-size: 14.5px; }
+
+  /* FAQ */
+  .faq { margin-top: 40px; border-top: 1px solid var(--line-soft); }
+  details { border-bottom: 1px solid var(--line-soft); padding: 4px 0; }
+  summary { cursor: pointer; list-style: none; padding: 22px 0; font-family:"Bricolage Grotesque"; font-weight: 600; font-size: 19px; display:flex; justify-content: space-between; align-items:center; gap: 16px; }
+  summary::-webkit-details-marker { display:none; }
+  summary .plus { color: var(--accent); font-family:"JetBrains Mono"; transition: transform .25s; flex-shrink:0; }
+  details[open] summary .plus { transform: rotate(45deg); }
+  details p { color: var(--text-dim); font-size: 16px; line-height: 1.6; padding: 0 0 22px; max-width: 760px; }
+  details code { font-family:"JetBrains Mono"; font-size: 13.5px; color: var(--text); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+
+  /* Support */
+  .support { text-align: center; }
+  .support h2 { margin: 0 auto; }
+  .support .sec-lede { margin: 18px auto 0; }
+  .support .cta-row { justify-content: center; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--line-soft); padding: 50px 0 60px; background: var(--bg-2); }
+  .foot-inner { display:flex; justify-content: space-between; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+  .foot-brand { font-family:"Bricolage Grotesque"; font-weight: 800; font-size: 18px; }
+  .foot-brand + p { color: var(--text-faint); font-size: 14px; margin-top: 8px; max-width: 280px; }
+  .foot-links { display:flex; gap: 50px; flex-wrap: wrap; }
+  .foot-col h5 { font-family:"JetBrains Mono"; font-size: 12px; text-transform: uppercase; letter-spacing:.06em; color: var(--text-faint); margin-bottom: 14px; }
+  .foot-col a { display:block; text-decoration:none; color: var(--text-dim); font-size: 15px; margin-bottom: 10px; transition: color .2s; }
+  .foot-col a:hover { color: var(--text); }
+  .foot-base { margin-top: 44px; padding-top: 24px; border-top:1px solid var(--line-soft); font-family:"JetBrains Mono"; font-size: 12.5px; color: var(--text-faint); display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* Hero load stagger */
+  .stag { opacity: 0; transform: translateY(18px); animation: rise .8s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}.d4{animation-delay:.35s}.d5{animation-delay:.5s}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="brand"><span class="brand-dot"></span> LPX Explorer</div>
+    <div class="nav-links">
+      <a href="#what">What it does</a>
+      <a href="#readonly">Read-only</a>
+      <a href="#faq">FAQ</a>
+      <a class="ghbtn" href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow stag d1"><span class="brand-dot" style="width:8px;height:8px;box-shadow:none"></span> Beta · macOS · <b>free</b></div>
+    <h1 class="hero stag d2">See inside your Logic&nbsp;projects<span class="em">without opening Logic.</span></h1>
+    <p class="lede stag d3">A read-only macOS app that parses <span class="mono">.logicx</span> bundles so you can see the plug-ins, tracks and metadata in a project — and tell whether it will open cleanly on this Mac — in a fraction of the time Logic takes to launch.</p>
+
+    <div class="cta-row stag d4">
+      <a class="btn btn-primary" id="downloadBtn" href="https://github.com/rhydlewis/lpx-explorer/releases" target="_blank" rel="noopener">
+        Download for macOS <small id="dlVersion">.dmg</small>
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">View source on GitHub</a>
+    </div>
+    <div class="meta-line stag d4">
+      <span>Free, donations welcome</span><span>GPL-3.0</span><span>Apple silicon &amp; Intel</span><span>No telemetry</span>
+    </div>
+
+    <div class="verdict stag d5">
+      <div class="verdict-band">
+        <span class="pulse"></span>
+        <b>Clean</b>
+        <span>— all referenced plug-ins are installed. This project will open without warnings.</span>
+      </div>
+      <img class="shot" src="https://github.com/rhydlewis/lpx-explorer/raw/main/screenshot.png" alt="LPX Explorer inspector view: compatibility verdict band, project metadata, track list with insert pills, and plug-in rail with install-status badges." loading="lazy" />
+    </div>
+  </div>
+</header>
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="wrap reveal">
+    <div class="section-tag">The problem</div>
+    <h2 class="sec">Hundreds of old projects. No idea what's in any of them.</h2>
+    <p class="sec-lede">If you've used Logic for years, you have a folder full of projects with names that tell you nothing. Opening each one to jog your memory means waiting for Logic to launch, then waiting for the project to load — and sometimes discovering a plug-in is missing only once you're already there.</p>
+    <div class="filenames">
+      <div class="f">new idea.logicx</div>
+      <div class="f">new idea 2.logicx</div>
+      <div class="f">3 tracks copy.logicx</div>
+      <div class="f">untitled-final-FINAL.logicx</div>
+      <div class="f">demo (1).logicx</div>
+    </div>
+    <p class="sec-lede" style="margin-top:34px;">LPX Explorer answers two questions instantly: <b style="color:var(--text)">what's in this project?</b> and <b style="color:var(--text)">will it open cleanly on this Mac?</b></p>
+  </div>
+</section>
+
+<!-- WHAT IT DOES -->
+<section id="what">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-tag">What it does</div>
+      <h2 class="sec">Two ways in: a single project, or your whole library.</h2>
+    </div>
+    <div class="cols">
+      <div class="card reveal">
+        <div class="kicker">Inspect a project</div>
+        <h3>Pick a project, see the details</h3>
+        <ul>
+          <li>Compatibility verdict — clean, warnings, or will-not-open — with a jump straight to the first missing plug-in.</li>
+          <li>Project metadata: key, BPM, time signature, sample rate, dates and bundle size.</li>
+          <li>Track list with user-renamed names recovered from the project, and expandable insert chains as colour-coded pills.</li>
+          <li>Plug-in rail showing every Audio Unit the project references, with install-status badges checked against your Mac.</li>
+        </ul>
+        <div class="pills">
+          <span class="pill inst">Instrument</span>
+          <span class="pill fx">FX</span>
+          <span class="pill midi">MIDI</span>
+        </div>
+      </div>
+      <div class="card reveal">
+        <div class="kicker">Scan a folder</div>
+        <h3>Pick a folder, see the library</h3>
+        <ul>
+          <li>Recursive scan of every <span class="mono">.logicx</span> bundle, with progress and a per-project cache.</li>
+          <li>Tile grid showing name, key + BPM, track counts and size at a glance.</li>
+          <li>Searchable sidebar; recent projects and folders surface in the native File menu.</li>
+          <li>Plug-in sidebar flips to library scope: e.g. <span class="mono">47 plug-ins · 3 missing across 12 projects</span>.</li>
+        </ul>
+        <p style="color:var(--text-faint); font-size:14px; margin-top:24px; font-family:'JetBrains Mono'">Tested against ~150 projects across ~25 GB.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPATIBILITY -->
+<section style="padding-top:0">
+  <div class="wrap reveal">
+    <div class="section-tag">Compatibility check</div>
+    <h2 class="sec">Know before you open it.</h2>
+    <p class="sec-lede">LPX Explorer cross-references the Audio Units a project references against the plug-ins actually installed on your machine — so you find out about a missing instrument before Logic does.</p>
+    <div class="verdicts">
+      <div class="v clean reveal"><div class="dot"></div><div class="name">Clean</div><p>Every referenced plug-in is installed. Open with confidence.</p></div>
+      <div class="v warn reveal"><div class="dot"></div><div class="name">Warnings</div><p>Some plug-ins are missing or substituted. You can search for or copy the fingerprint of each one.</p></div>
+      <div class="v fail reveal"><div class="dot"></div><div class="name">Will not open</div><p>Critical components are unavailable on this Mac. Sort it out first.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- READ ONLY / TRUST -->
+<section id="readonly" class="trust">
+  <div class="wrap reveal">
+    <div class="section-tag">Read-only by construction</div>
+    <h2 class="sec">It cannot change your files. That's enforced, not promised.</h2>
+    <p class="sec-lede">Your projects are irreplaceable. LPX Explorer is built so that touching a file's contents is structurally impossible — and that guarantee is tested in CI.</p>
+    <div class="trust-grid">
+      <div class="trust-item">
+        <h4>Bytes-only parser</h4>
+        <p>The Rust parser has a bytes-only API — <code>find_aus(&amp;[u8])</code>, <code>find_tracks(&amp;[u8])</code>. It is given bytes; it cannot open or write a file.</p>
+      </div>
+      <div class="trust-item">
+        <h4>Read once, route through</h4>
+        <p>The Tauri command layer reads a bundle's bytes a single time and passes them to the parser. Nothing writes back.</p>
+      </div>
+      <div class="trust-item">
+        <h4>Proven by invariant</h4>
+        <p>An integration test snapshots <code>SHA-256</code> + mtime around the parser and asserts not a single byte changed.</p>
+      </div>
+      <div class="trust-item">
+        <h4>Gated, not aspirational</h4>
+        <p>CI fails if the read-only invariant fails. The guarantee can't quietly rot between releases.</p>
+      </div>
+    </div>
+    <div class="warnbox">
+      <div class="ic">⚠</div>
+      <p><b>Still: keep backups.</b> LPX Explorer parses an undocumented binary format that Apple may change at any time. The read-only invariant covers the parser, but you're pointing it at irreplaceable creative work. Use at your own risk.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap reveal">
+    <div class="section-tag">FAQ</div>
+    <h2 class="sec">The honest answers.</h2>
+    <div class="faq">
+      <details>
+        <summary>Which platforms are supported? <span class="plus">+</span></summary>
+        <p>macOS only. It's a native Tauri app for Apple silicon and Intel Macs. There's no Windows or Linux build, because Logic Pro is macOS-only.</p>
+      </details>
+      <details>
+        <summary>Does it work with VST or AAX plug-ins? <span class="plus">+</span></summary>
+        <p>It checks Audio Unit (AU) plug-ins only — the format Logic uses. The registry is built by running <code>auval -l</code> once at startup and cached for the session, with a manual rescan when you install something new.</p>
+      </details>
+      <details>
+        <summary>Can it edit or repair my projects? <span class="plus">+</span></summary>
+        <p>No, and that's deliberate. It's read-only by construction — it inspects, it never writes. If you need to fix a project, do it in Logic.</p>
+      </details>
+      <details>
+        <summary>Why does it sometimes list plug-ins I'm not using? <span class="plus">+</span></summary>
+        <p>Two known quirks, both real rather than bugs: Logic keeps prior plug-in references in <code>ProjectData</code> after you swap one (undo history), and other Alternatives inside the bundle carry their own references. Open the project in Logic to see what the active alternative actually loads.</p>
+      </details>
+      <details>
+        <summary>How much does it cost? <span class="plus">+</span></summary>
+        <p>It's free and open source under GPL-3.0. If it's saved you some time, donations are welcome but never required, and nothing is gated behind them.</p>
+      </details>
+      <details>
+        <summary>How does this relate to lpx-toolkit? <span class="plus">+</span></summary>
+        <p><code>lpx-toolkit</code> is the original Python CLI, built first to reverse-engineer the <code>.logicx</code> structure. LPX Explorer is the desktop app, with the format knowledge now living in a Rust parser crate that both will eventually share.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support">
+  <div class="wrap reveal">
+    <div class="section-tag" style="text-align:center">Support the project</div>
+    <h2 class="sec">Free to use. Built in spare time.</h2>
+    <p class="sec-lede">If LPX Explorer has saved you from opening sketchy old projects in Logic, a tip is genuinely appreciated — and helps justify the next release.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://buymeacoffee.com/rhyd" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+      <a class="btn btn-ghost" href="https://github.com/sponsors/rhydlewis" target="_blank" rel="noopener">GitHub Sponsors</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div>
+        <div class="foot-brand"><span class="brand-dot" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>LPX Explorer</div>
+        <p>A read-only inspector for Logic Pro <span class="mono">.logicx</span> project bundles.</p>
+      </div>
+      <div class="foot-links">
+        <div class="foot-col">
+          <h5>Project</h5>
+          <a href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">GitHub repository</a>
+          <a href="https://github.com/rhydlewis/lpx-explorer/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/rhydlewis/lpx-explorer/issues" target="_blank" rel="noopener">Report an issue</a>
+          <a href="https://github.com/rhydlewis/lpx-toolkit" target="_blank" rel="noopener">lpx-toolkit (CLI)</a>
+        </div>
+        <div class="foot-col">
+          <h5>Support</h5>
+          <a href="https://buymeacoffee.com/rhyd" target="_blank" rel="noopener">Buy me a coffee</a>
+          <a href="https://github.com/sponsors/rhydlewis" target="_blank" rel="noopener">GitHub Sponsors</a>
+          <a href="https://github.com/rhydlewis/lpx-explorer/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0 licence</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>© 2026 Rhyd Lewis · GPL-3.0-or-later</span>
+      <span>Not affiliated with Apple. Logic Pro is a trademark of Apple Inc.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Pull latest .dmg from GitHub Releases API; fall back to the releases page.
+  (async () => {
+    try {
+      const res = await fetch('https://api.github.com/repos/rhydlewis/lpx-explorer/releases/latest');
+      if (!res.ok) return;
+      const data = await res.json();
+      const dmg = (data.assets || []).find(a => a.name.toLowerCase().endsWith('.dmg'));
+      const btn = document.getElementById('downloadBtn');
+      const ver = document.getElementById('dlVersion');
+      if (dmg) btn.href = dmg.browser_download_url;
+      if (data.tag_name) ver.textContent = data.tag_name + ' · .dmg';
+    } catch (_) { /* keep fallback link */ }
+  })();
+</script>
+</body>
+</html>
