@@ -205,6 +205,22 @@
   .v.clean .name{color:var(--clean)} .v.warn .name{color:var(--warn)} .v.fail .name{color:var(--fail)}
   .v p { color: var(--text-dim); font-size: 14.5px; }
 
+  /* Testimonials */
+  .testimonials { background: var(--bg-2); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+  .quotes { columns: 3 280px; column-gap: 16px; margin-top: 44px; }
+  .quote {
+    break-inside: avoid; margin: 0 0 16px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 22px 24px;
+    transition: border-color .25s;
+  }
+  .quote:hover { border-color: var(--text-faint); }
+  .quote blockquote { color: var(--text); font-size: 16px; line-height: 1.5; }
+  .quote blockquote::before { content: "\201C"; color: var(--accent); font-family: "Bricolage Grotesque"; font-weight: 800; }
+  .quote blockquote::after  { content: "\201D"; color: var(--accent); font-family: "Bricolage Grotesque"; font-weight: 800; }
+  .quote figcaption { display: block; margin-top: 14px; font-family: "JetBrains Mono"; font-size: 12px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
+  .quote figcaption::before { content: "— "; }
+
   /* FAQ */
   .faq { margin-top: 40px; border-top: 1px solid var(--line-soft); }
   details { border-bottom: 1px solid var(--line-soft); padding: 4px 0; }
@@ -249,6 +265,7 @@
     <div class="brand"><span class="brand-dot"></span> LPX Explorer</div>
     <div class="nav-links">
       <a href="#what">What it does</a>
+      <a href="#reviews">Reviews</a>
       <a href="#readonly">Read-only</a>
       <a href="#faq">FAQ</a>
       <a class="ghbtn" href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">GitHub ↗</a>
@@ -260,23 +277,22 @@
   <div class="wrap">
     <div class="eyebrow stag d1"><span class="brand-dot" style="width:8px;height:8px;box-shadow:none"></span> Beta · macOS · <b>free</b></div>
     <h1 class="hero stag d2">See inside your Logic&nbsp;projects<span class="em">without opening Logic.</span></h1>
-    <p class="lede stag d3">A read-only macOS app that parses <span class="mono">.logicx</span> bundles so you can see the plug-ins, tracks and metadata in a project — and tell whether it will open cleanly on this Mac — in a fraction of the time Logic takes to launch.</p>
+    <p class="lede stag d3">A read-only macOS app that parses <span class="mono">.logicx</span> projects so you can see the plug-ins, tracks and metadata inside (and tell whether it will open cleanly on this Mac) in a fraction of the time Logic takes to launch.</p>
 
     <div class="cta-row stag d4">
       <a class="btn btn-primary" id="downloadBtn" href="https://github.com/rhydlewis/lpx-explorer/releases" target="_blank" rel="noopener">
-        Download for macOS <small id="dlVersion">.dmg</small>
+        Download <small id="dlVersion">.dmg</small>
       </a>
       <a class="btn btn-ghost" href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">View source on GitHub</a>
     </div>
     <div class="meta-line stag d4">
-      <span>Free, donations welcome</span><span>GPL-3.0</span><span>Apple silicon &amp; Intel</span><span>No telemetry</span>
+      <span><a href="https://buymeacoffee.com/rhyd" target="_blank" rel="noopener">Free, donations welcome</a></span><span>GPL-3.0</span><span>Apple silicon &amp; Intel</span>
     </div>
 
     <div class="verdict stag d5">
       <div class="verdict-band">
         <span class="pulse"></span>
-        <b>Clean</b>
-        <span>— all referenced plug-ins are installed. This project will open without warnings.</span>
+        <span>LPX Explorer in action, showing a clean compatibility verdict: every plug-in this project references is installed, so it will open without warnings.</span>
       </div>
       <img class="shot" src="https://github.com/rhydlewis/lpx-explorer/raw/main/screenshot.png" alt="LPX Explorer inspector view: compatibility verdict band, project metadata, track list with insert pills, and plug-in rail with install-status badges." loading="lazy" />
     </div>
@@ -288,7 +304,7 @@
   <div class="wrap reveal">
     <div class="section-tag">The problem</div>
     <h2 class="sec">Hundreds of old projects. No idea what's in any of them.</h2>
-    <p class="sec-lede">If you've used Logic for years, you have a folder full of projects with names that tell you nothing. Opening each one to jog your memory means waiting for Logic to launch, then waiting for the project to load — and sometimes discovering a plug-in is missing only once you're already there.</p>
+    <p class="sec-lede">If you've used Logic for years, you probably have folders full of projects with names that tell you next to nothing. Opening each one to jog your memory means waiting for Logic to launch, then waiting for the project to load (and sometimes discovering a plug-in is missing only once you're already there).</p>
     <div class="filenames">
       <div class="f">new idea.logicx</div>
       <div class="f">new idea 2.logicx</div>
@@ -296,7 +312,7 @@
       <div class="f">untitled-final-FINAL.logicx</div>
       <div class="f">demo (1).logicx</div>
     </div>
-    <p class="sec-lede" style="margin-top:34px;">LPX Explorer answers two questions instantly: <b style="color:var(--text)">what's in this project?</b> and <b style="color:var(--text)">will it open cleanly on this Mac?</b></p>
+    <p class="sec-lede" style="margin-top:34px;">LPX Explorer answers four questions instantly: <b style="color:var(--text)">what's in this project?</b>, <b style="color:var(--text)">will it open cleanly on this Mac?</b>, <b style="color:var(--text)">what does it sound like?</b> and <b style="color:var(--text)">which Logic version made it?</b></p>
   </div>
 </section>
 
@@ -312,10 +328,12 @@
         <div class="kicker">Inspect a project</div>
         <h3>Pick a project, see the details</h3>
         <ul>
-          <li>Compatibility verdict — clean, warnings, or will-not-open — with a jump straight to the first missing plug-in.</li>
-          <li>Project metadata: key, BPM, time signature, sample rate, dates and bundle size.</li>
+          <li>Compatibility verdict (clean, warnings, or will-not-open) with a jump straight to the first missing plug-in.</li>
+          <li>Project metadata: key, BPM, time signature, sample rate, dates and project size.</li>
           <li>Track list with user-renamed names recovered from the project, and expandable insert chains as colour-coded pills.</li>
           <li>Plug-in rail showing every Audio Unit the project references, with install-status badges checked against your Mac.</li>
+          <li>Audio preview: play the audio files inside a project, with type, size and duration, so you can hear what it is without opening Logic.</li>
+          <li>Export a plain-text project README (tempo, sample rate, alternatives and third-party plug-ins) for collaborators or archives.</li>
         </ul>
         <div class="pills">
           <span class="pill inst">Instrument</span>
@@ -327,7 +345,7 @@
         <div class="kicker">Scan a folder</div>
         <h3>Pick a folder, see the library</h3>
         <ul>
-          <li>Recursive scan of every <span class="mono">.logicx</span> bundle, with progress and a per-project cache.</li>
+          <li>Recursive scan of every <span class="mono">.logicx</span> project, with progress and a per-project cache.</li>
           <li>Tile grid showing name, key + BPM, track counts and size at a glance.</li>
           <li>Searchable sidebar; recent projects and folders surface in the native File menu.</li>
           <li>Plug-in sidebar flips to library scope: e.g. <span class="mono">47 plug-ins · 3 missing across 12 projects</span>.</li>
@@ -338,12 +356,30 @@
   </div>
 </section>
 
+<!-- TESTIMONIALS -->
+<section id="reviews" class="testimonials">
+  <div class="wrap reveal">
+    <div class="section-tag">What people are saying</div>
+    <h2 class="sec">Early users seem to like it.</h2>
+    <div class="quotes">
+      <figure class="quote"><blockquote>Pure genius! Clearly a LP user who scratched that itch we all have but never did anything about it...</blockquote><figcaption>Logic Pro Help forum</figcaption></figure>
+      <figure class="quote"><blockquote>This is amazing! I was looking for something that would report the plugins used in a project.</blockquote><figcaption>Reddit</figcaption></figure>
+      <figure class="quote"><blockquote>I just tried it and it should save me a lot of time, especially looking at my archived projects.</blockquote><figcaption>Logic Pro Help forum</figcaption></figure>
+      <figure class="quote"><blockquote>Just downloaded this and am thoroughly impressed with it. Thank you. And, Yes, it is well along the way to becoming a sellable plugin, even if not so already...</blockquote><figcaption>Reddit</figcaption></figure>
+      <figure class="quote"><blockquote>Very smart</blockquote><figcaption>Reddit</figcaption></figure>
+      <figure class="quote"><blockquote>OH MY GODDD I COULD KISS YOU, can't wait to try this out</blockquote><figcaption>Reddit</figcaption></figure>
+      <figure class="quote"><blockquote>This is really dope!! Thank you for sharing</blockquote><figcaption>Reddit</figcaption></figure>
+      <figure class="quote"><blockquote>Apple is gonna buy this, get ready! Good job and thanks</blockquote><figcaption>Reddit</figcaption></figure>
+    </div>
+  </div>
+</section>
+
 <!-- COMPATIBILITY -->
-<section style="padding-top:0">
+<section>
   <div class="wrap reveal">
     <div class="section-tag">Compatibility check</div>
     <h2 class="sec">Know before you open it.</h2>
-    <p class="sec-lede">LPX Explorer cross-references the Audio Units a project references against the plug-ins actually installed on your machine — so you find out about a missing instrument before Logic does.</p>
+    <p class="sec-lede">LPX Explorer cross-references the Audio Units a project references against the plug-ins actually installed on your Mac, so you find out about a missing instrument before Logic does.</p>
     <div class="verdicts">
       <div class="v clean reveal"><div class="dot"></div><div class="name">Clean</div><p>Every referenced plug-in is installed. Open with confidence.</p></div>
       <div class="v warn reveal"><div class="dot"></div><div class="name">Warnings</div><p>Some plug-ins are missing or substituted. You can search for or copy the fingerprint of each one.</p></div>
@@ -357,23 +393,23 @@
   <div class="wrap reveal">
     <div class="section-tag">Read-only by construction</div>
     <h2 class="sec">It cannot change your files. That's enforced, not promised.</h2>
-    <p class="sec-lede">Your projects are irreplaceable. LPX Explorer is built so that touching a file's contents is structurally impossible — and that guarantee is tested in CI.</p>
+    <p class="sec-lede">Your projects are irreplaceable. LPX Explorer is built so that changing a file's contents is impossible by design, and automated tests confirm that on every release.</p>
     <div class="trust-grid">
       <div class="trust-item">
-        <h4>Bytes-only parser</h4>
-        <p>The Rust parser has a bytes-only API — <code>find_aus(&amp;[u8])</code>, <code>find_tracks(&amp;[u8])</code>. It is given bytes; it cannot open or write a file.</p>
+        <h4>It can only read</h4>
+        <p>The part of the app that understands your projects is only ever handed the data to read. It has no ability to open, change or save a file. That capability simply isn't built into it.</p>
       </div>
       <div class="trust-item">
-        <h4>Read once, route through</h4>
-        <p>The Tauri command layer reads a bundle's bytes a single time and passes them to the parser. Nothing writes back.</p>
+        <h4>Read once, never written</h4>
+        <p>When you open a project, LPX Explorer reads it a single time and passes the contents along to be inspected. Nothing is ever written back to your files.</p>
       </div>
       <div class="trust-item">
-        <h4>Proven by invariant</h4>
-        <p>An integration test snapshots <code>SHA-256</code> + mtime around the parser and asserts not a single byte changed.</p>
+        <h4>Checked, not assumed</h4>
+        <p>A built-in test takes a fingerprint of a project before and after the app reads it, then confirms nothing changed: not a single byte, and not even the date it was last modified.</p>
       </div>
       <div class="trust-item">
-        <h4>Gated, not aspirational</h4>
-        <p>CI fails if the read-only invariant fails. The guarantee can't quietly rot between releases.</p>
+        <h4>It can't quietly break</h4>
+        <p>If that check ever fails, the release is blocked automatically, so the guarantee can't silently stop being true from one version to the next.</p>
       </div>
     </div>
     <div class="warnbox">
@@ -387,19 +423,19 @@
 <section id="faq">
   <div class="wrap reveal">
     <div class="section-tag">FAQ</div>
-    <h2 class="sec">The honest answers.</h2>
+    <h2 class="sec">Frequently asked questions.</h2>
     <div class="faq">
       <details>
         <summary>Which platforms are supported? <span class="plus">+</span></summary>
-        <p>macOS only. It's a native Tauri app for Apple silicon and Intel Macs. There's no Windows or Linux build, because Logic Pro is macOS-only.</p>
+        <p>macOS only. It's a native app for Apple silicon and Intel Macs. There's no Windows or Linux build, because Logic Pro is macOS-only.</p>
       </details>
       <details>
         <summary>Does it work with VST or AAX plug-ins? <span class="plus">+</span></summary>
-        <p>It checks Audio Unit (AU) plug-ins only — the format Logic uses. The registry is built by running <code>auval -l</code> once at startup and cached for the session, with a manual rescan when you install something new.</p>
+        <p>It checks Audio Unit (AU) plug-ins only, the format Logic uses. It scans the plug-ins installed on your Mac when it starts up, remembers them for the session, and lets you rescan manually when you install something new.</p>
       </details>
       <details>
         <summary>Can it edit or repair my projects? <span class="plus">+</span></summary>
-        <p>No, and that's deliberate. It's read-only by construction — it inspects, it never writes. If you need to fix a project, do it in Logic.</p>
+        <p>No, and that's deliberate. It's read-only by design: it inspects, it never writes. If you need to fix a project, do it in Logic.</p>
       </details>
       <details>
         <summary>Why does it sometimes list plug-ins I'm not using? <span class="plus">+</span></summary>
@@ -410,8 +446,12 @@
         <p>It's free and open source under GPL-3.0. If it's saved you some time, donations are welcome but never required, and nothing is gated behind them.</p>
       </details>
       <details>
+        <summary>Does it collect any data? <span class="plus">+</span></summary>
+        <p>Only anonymous counts. The app pings a privacy-friendly service (GoatCounter) to count installs and upgrades, so I can see roughly how many people are using it. No personal data, IP addresses, sessions or in-app activity are collected. This website uses the same cookieless analytics and nothing else.</p>
+      </details>
+      <details>
         <summary>How does this relate to lpx-toolkit? <span class="plus">+</span></summary>
-        <p><code>lpx-toolkit</code> is the original Python CLI, built first to reverse-engineer the <code>.logicx</code> structure. LPX Explorer is the desktop app, with the format knowledge now living in a Rust parser crate that both will eventually share.</p>
+        <p><code>lpx-toolkit</code> is the original Python CLI, built first to reverse-engineer the <code>.logicx</code> structure. LPX Explorer is the desktop app, with the format knowledge now living in a Rust parser library that both will eventually share.</p>
       </details>
     </div>
   </div>
@@ -422,7 +462,7 @@
   <div class="wrap reveal">
     <div class="section-tag" style="text-align:center">Support the project</div>
     <h2 class="sec">Free to use. Built in spare time.</h2>
-    <p class="sec-lede">If LPX Explorer has saved you from opening sketchy old projects in Logic, a tip is genuinely appreciated — and helps justify the next release.</p>
+    <p class="sec-lede">If LPX Explorer has saved you from opening sketchy old projects in Logic, a tip is genuinely appreciated and helps with future releases.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="https://buymeacoffee.com/rhyd" target="_blank" rel="noopener">☕ Buy me a coffee</a>
       <a class="btn btn-ghost" href="https://github.com/sponsors/rhydlewis" target="_blank" rel="noopener">GitHub Sponsors</a>
@@ -440,10 +480,9 @@
       <div class="foot-links">
         <div class="foot-col">
           <h5>Project</h5>
-          <a href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">GitHub repository</a>
+          <a href="https://github.com/rhydlewis/lpx-explorer" target="_blank" rel="noopener">Source code</a>
           <a href="https://github.com/rhydlewis/lpx-explorer/releases" target="_blank" rel="noopener">Releases</a>
           <a href="https://github.com/rhydlewis/lpx-explorer/issues" target="_blank" rel="noopener">Report an issue</a>
-          <a href="https://github.com/rhydlewis/lpx-toolkit" target="_blank" rel="noopener">lpx-toolkit (CLI)</a>
         </div>
         <div class="foot-col">
           <h5>Support</h5>
