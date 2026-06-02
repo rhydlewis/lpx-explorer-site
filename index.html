@@ -148,7 +148,87 @@
   @keyframes ring { 0%{transform:scale(.6);opacity:.6} 100%{transform:scale(1.6);opacity:0} }
   .verdict-band b { font-family:"JetBrains Mono"; font-size: 14px; letter-spacing: .02em; color: var(--clean); text-transform: uppercase; }
   .verdict-band span { color: var(--text-dim); font-size: 14px; }
-  .shot { display: block; width: 100%; height: auto; }
+
+  .media-carousel { padding: 16px; }
+
+  .media-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .media-tabs {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .media-nav {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .media-nav-btn {
+    font-family: "JetBrains Mono";
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .media-nav-btn:hover { border-color: var(--text-faint); color: var(--text); }
+
+  .media-tab {
+    font-family: "JetBrains Mono";
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .media-tab:hover { border-color: var(--text-faint); color: var(--text); }
+  .media-tab[aria-selected="true"] {
+    color: var(--text);
+    border-color: rgba(69,212,131,.45);
+    background: rgba(69,212,131,.12);
+  }
+
+  .media-panel[hidden] { display: none; }
+
+  .media-card {
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    background: var(--bg-2);
+    overflow: hidden;
+  }
+
+  .media-label {
+    padding: 10px 12px;
+    font-family: "JetBrains Mono";
+    font-size: 12px;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--line-soft);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .media-card img,
+  .media-card video,
+  .shot {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
 
   /* ---------- Sections ---------- */
   section { padding: 80px 0; }
@@ -294,7 +374,36 @@
         <span class="pulse"></span>
         <span>LPX Explorer in action, showing a clean compatibility verdict: every plug-in this project references is installed, so it will open without warnings.</span>
       </div>
-      <img class="shot" src="https://github.com/rhydlewis/lpx-explorer/raw/main/screenshot.png" alt="LPX Explorer inspector view: compatibility verdict band, project metadata, track list with insert pills, and plug-in rail with install-status badges." loading="lazy" />
+      <div class="media-carousel" data-media-carousel>
+        <div class="media-controls">
+          <div class="media-tabs" role="tablist" aria-label="Hero media">
+            <button class="media-tab" role="tab" aria-selected="true" aria-controls="hero-screenshot" id="tab-screenshot" data-target="hero-screenshot">Screenshot</button>
+            <button class="media-tab" role="tab" aria-selected="false" aria-controls="hero-video" id="tab-video" data-target="hero-video">Video walkthrough</button>
+          </div>
+          <div class="media-nav" aria-label="Carousel controls">
+            <button class="media-nav-btn" type="button" data-media-prev aria-label="Previous media">← Prev</button>
+            <button class="media-nav-btn" type="button" data-media-next aria-label="Next media">Next →</button>
+          </div>
+        </div>
+
+        <div class="media-panel" id="hero-screenshot" role="tabpanel" aria-labelledby="tab-screenshot">
+          <figure class="media-card">
+            <figcaption class="media-label">Screenshot</figcaption>
+            <img class="shot" src="https://github.com/rhydlewis/lpx-explorer/raw/main/screenshot.png" alt="LPX Explorer inspector view: compatibility verdict band, project metadata, track list with insert pills, and plug-in rail with install-status badges." loading="lazy" />
+          </figure>
+        </div>
+
+        <div class="media-panel" id="hero-video" role="tabpanel" aria-labelledby="tab-video" hidden>
+          <figure class="media-card">
+            <figcaption class="media-label">Video walkthrough</figcaption>
+            <video controls preload="metadata" playsinline>
+              <source src="lpx-explorer.mp4" type="video/mp4" />
+              <source src="lpx-explorer.mov" type="video/quicktime" />
+              Your browser does not support embedded video.
+            </video>
+          </figure>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -505,6 +614,43 @@
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Hero media carousel (screenshot/video)
+  document.querySelectorAll('[data-media-carousel]').forEach((carousel) => {
+    const tabs = Array.from(carousel.querySelectorAll('.media-tab'));
+    const panels = Array.from(carousel.querySelectorAll('.media-panel'));
+    const prevBtn = carousel.querySelector('[data-media-prev]');
+    const nextBtn = carousel.querySelector('[data-media-next]');
+
+    const setActive = (targetId) => {
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.target === targetId;
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      panels.forEach((panel) => {
+        const isActive = panel.id === targetId;
+        panel.hidden = !isActive;
+        if (!isActive) {
+          const vid = panel.querySelector('video');
+          if (vid && !vid.paused) vid.pause();
+        }
+      });
+    };
+
+    const activeIndex = () => tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+    const showByIndex = (index) => {
+      const next = ((index % tabs.length) + tabs.length) % tabs.length;
+      setActive(tabs[next].dataset.target);
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => setActive(tab.dataset.target));
+    });
+
+    if (prevBtn) prevBtn.addEventListener('click', () => showByIndex(activeIndex() - 1));
+    if (nextBtn) nextBtn.addEventListener('click', () => showByIndex(activeIndex() + 1));
+  });
 
   // Pull latest .dmg from GitHub Releases API; fall back to the releases page.
   (async () => {
